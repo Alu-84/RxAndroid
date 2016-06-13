@@ -5,13 +5,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import rx.Observable;
 import rx.Observer;
-import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
@@ -48,19 +48,13 @@ public class MainActivity extends AppCompatActivity {
 
         //    ------------- observables
 
-        subscription = Observable.create(new Observable.OnSubscribe<Integer>() {
+        subscription = Observable.fromCallable(new Callable<Integer>() {
             @Override
-            public void call(Subscriber<? super Integer> subscriber) {
-                try {
-                    Integer code = ping(URL);
-                    subscriber.onNext(code); // Emit the contents of the URL
-                    subscriber.onCompleted(); // Nothing more to emit
-
-                } catch (Exception e) {
-                    subscriber.onError(e); // In case there are network errors
-                }
+            public Integer call() throws Exception {
+                return ping(URL);
             }
-        }).subscribeOn(Schedulers.newThread())
+        })
+                .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .filter(new Func1<Integer, Boolean>() {
                     @Override
@@ -69,19 +63,21 @@ public class MainActivity extends AppCompatActivity {
                     }
                 })
                 .map(new Func1<Integer, String>() {
-                    @Override
-                    public String call(Integer code) {
-                        String s = "The ping on" + URL + " is ";
-                        switch (code) {
-                            case 200:
-                                s += "good";
-                                break;
-                            default:
-                                s += "bad";
-                        }
-                        return s;
-                    }
-                })
+                         @Override
+                         public String call(Integer code) {
+                             String s = "The ping on" + URL + " is ";
+                             switch (code) {
+                                 case 200:
+                                     s += "good";
+                                     break;
+                                 default:
+                                     s += "bad";
+                             }
+                             return s;
+                         }
+                     }
+
+                )
                 .subscribe(ob);
     }
 
